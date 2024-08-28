@@ -1,6 +1,17 @@
 from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db'
+db = SQLAlchemy(app)
+
+class Movie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    genre = db.Column(db.String(100), nullable=False)
+
+with app.app_context():
+    db.create_all()
 
 movies = [
     {'id':1, 'title': 'Star Wars', 'genre': 'scifi'},
