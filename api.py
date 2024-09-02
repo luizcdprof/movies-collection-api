@@ -13,29 +13,50 @@ class Movie(db.Model):
 with app.app_context():
     db.create_all()
 
-movies = [
-    {'id':1, 'title': 'Star Wars', 'genre': 'scifi'},
-    {'id':2, 'title': 'It', 'genre': 'horror'},
-    {'id':3, 'title': 'Um tira da pesada', 'genre': 'comedy'}
-]
-
 @app.route('/api/movies', methods=['GET'])
 def get_movies():
-    return jsonify(movies)
+    movies = Movie.query.all()
+    return jsonify([{"id":movie.id,"title":movie.title,"genre":movie.genre} for movie in movies])
 
 @app.route('/api/movies/<int:id>', methods=['GET'])
 def get_movie(id):
-    movie = next(
-        (movie for movie in movies if movie['id'] == id),
-        None
-    )
-    return jsonify(movie) if movie else ('', 404)
+    movie = Movie.query.get(id)
+    return jsonify({"id":movie.id,"title":movie.title,"genre":movie.genre}) if movie else ('', 404)
 
 @app.route('/api/movies', methods=['POST'])
 def add_movie():
-    new_movie = request.get_json()
-    movies.append(new_movie)
-    return jsonify(new_movie), 201
+    data = request.get_json()
+    new_movie = Movie(title=data['title'], genre=data['genre'])
+    db.session.add(new_movie)
+    db.session.commit()
+    return jsonify({"id":new_movie.id,"title":new_movie.title,"genre":new_movie.genre}), 201
+
+@app.route('/api/movies/<int:id>', methods=['DELETE'])
+def delete_movie(id):
+    movie = Movie.query.get(id)
+    if movie is None:
+        return jsonify({"error":"movie not found"}), 404
+
+    db.session.delete(movie)
+    db.session.commit()
+    return '', 204
+
+@app.route('/api/movies/<int:id>', methods=['PUT'])
+def update_movie(id):
+    movie = Movie.query.get(id)
+    if movie is None:
+        return jsonify({"error":"movie not found"}), 404
+    
+    data = request.get_json()
+    movie.title = data.get('title', movie.title)
+    movie.genre = data.get('genre', movie.genre)
+
+    db.session.commit()
+    return jsonify({
+        "id":movie.id,
+        "title":movie.title,
+        "genre":movie.genre
+        })
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
